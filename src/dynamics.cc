@@ -69,7 +69,7 @@ namespace robotics {
             const auto f_next = Rf + F.col(i);
             n = N.col(i) + R_i1_i * n + internal::cross(links[i].rc(), F.col(i)) +
                 internal::cross(p_ne[i + 1], Rf);
-            tau_t[5] = (n.T() * z)[0];
+            tau_t[i] = (n.T() * z)[0];
             f = f_next;
         }
     }

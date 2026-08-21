@@ -20,15 +20,14 @@ namespace robotics {
         Arm_link() = default;
         Arm_link(const Link links_[k_dof], const math::matrix<4, 4>& base_, const math::matrix<4, 4>& tool_)
             :Base(base_), Tool(tool_) {
-            BSP_ASSERT(links != nullptr);
-
             for (uint8_t i = 0; i < k_dof; i++) {
                 links[i] = links_[i];   // 逐个拷贝
             }
             a2 = links[2].a(); a3 = links[3].a();
             d2 = links[1].d(); d4 = links[3].d();
             // arm_theta.cur_angle = arm_theta.raw_data = math::matrix<8, 6>::zeros();
-            Base_inv = internal::inv_t(Base), Tool_inv = internal::inv_t(Tool);
+            // 暂时不使用 internal::inv_t ，直接使用 matrix 的 inv()
+            Base_inv = Base.inv(), Tool_inv = Base.inv();
             forward(math::matrix<6, 1>::zeros());
             jacobi_clc();
         }
@@ -49,6 +48,26 @@ namespace robotics {
          */
         void rne(const math::matrix<6, 1>& q,
             const math::matrix<6, 1>& qd, const math::matrix<6, 1>& qdd);
+
+        // 允许基座姿态变化时更新重力向量。
+        void set_gravity(const math::matrix<3, 1> &gravity) { gravity_ = gravity; }
+
+        const math::matrix<6, 1> &q() const { return cur_q; }               // 当前关节角
+        const math::matrix<4, 4> &T_pose() const { return T_tool; }         // 带 Base + Tool
+        const math::matrix<4, 4> &T_chain() const { return T_; }            // 即不含 Base 和 Tool 的 T01...T56 连乘。
+        const math::matrix<6, 6> &jacobi() const { return Jacobi; }         // 实际雅可比矩阵
+        const math::matrix<6, 1> &torque() const { return tau_t; }          // 逆动力学关节力矩
+
+        /// 对应原 raw_data、cur_angle、validCount 和 range_state 的统一只读结果。
+        // [[nodiscard]] const IkResult &ik_result() const { return ik_result_; }
+
+        /// 对应原 arm_theta.upd_angle。
+        // [[nodiscard]] const math::matrix<6, 1> &selected_angle() const { return selected_angle_; }
+
+        const math::matrix<4, 4> &joint(uint8_t index) const {
+            BSP_ASSERT(index < k_dof);
+            return T_joint[index];
+        };
 
     private:
 
